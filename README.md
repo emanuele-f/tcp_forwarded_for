@@ -19,7 +19,7 @@ Such bytes will be filled in by the proxy with client IP and port, thanks to a N
 The server can then handle the bytes as normal data and retrieve the original client
 IP and port. This is akin to the *X-Forwarded-For* HTTP header used in HTTP proxies.
 
-##Proxy configuration
+## Proxy configuration
 
 We assume the proxy is configured as follows:
 
@@ -39,7 +39,7 @@ The last line will enqueue packets on NFQUEUE 1 for the *proxy_rewriter* program
 The packet to be modified is the first one of the connection, so the `connbytes` filter
 is used. NOTE: `connbytes` requires `net.netfilter.nf_conntrack_acct = 1`.
 
-##Compiling
+## Compiling
 
 The `libnetfilter-queue-dev` and `libcap-dev` packages or equivalent are needed.
 
