@@ -199,17 +199,12 @@ static int drop_privs() {
     return -3;
   }
 
-  cap_free(caps);
-
   if((setgid(pw->pw_gid) != 0) || (setuid(pw->pw_uid) != 0)) {
     fprintf(stderr, "Cannot drop privileges\n");
     return -4;
   }
 
   /* Acquire capabilities */
-  caps = cap_get_proc();
-
-  cap_set_flag(caps, CAP_EFFECTIVE, num_cap, cap_values, CAP_SET);
   if(cap_set_proc(caps) != 0) {
     fprintf(stderr, "Could not acquire capabilities\n");
     cap_free(caps);
