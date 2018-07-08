@@ -169,7 +169,6 @@ static int netfilter_callback(struct nfq_q_handle *nfhandle, struct nfgenmsg *nf
 
 static int drop_privs() {
   const cap_value_t cap_values[] = {
-    CAP_NET_RAW,      /* Use RAW and PACKET sockets */
     CAP_NET_ADMIN     /* Perform various network-related operations */
   };
   const int num_cap = sizeof(cap_values) / sizeof(cap_value_t);
@@ -198,10 +197,16 @@ static int drop_privs() {
     return -3;
   }
 
+  cap_free(caps);
+
   if((setgid(pw->pw_gid) != 0) || (setuid(pw->pw_uid) != 0)) {
     fprintf(stderr, "Cannot drop privileges\n");
     return -4;
   }
+
+  /* NOTE: effective capabilities changed after privilge drop, need to get again */
+  caps = cap_get_proc();
+  cap_set_flag(caps, CAP_EFFECTIVE, num_cap, cap_values, CAP_SET);
 
   /* Acquire capabilities */
   if(cap_set_proc(caps) != 0) {
@@ -282,9 +287,9 @@ int main() {
       int rc = nfq_handle_packet(nfHandle, buf, len);
 
       if(rc != 0)
-        fprintf(stderr, "nfq_handle_packet returned error: rc=%d, errno=%d", rc, errno);
+        fprintf(stderr, "nfq_handle_packet returned error: rc=%d, errno=%d\n", rc, errno);
     } else
-      fprintf(stderr, "NFQUEUE recv returned error: len=%d, errno=%d", len, errno);
+      fprintf(stderr, "NFQUEUE recv returned error: len=%d, errno=%d\n", len, errno);
   }
 
   /*****/
