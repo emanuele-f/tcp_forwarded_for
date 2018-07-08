@@ -41,6 +41,6 @@ is used. NOTE: `connbytes` requires `net.netfilter.nf_conntrack_acct = 1`.
 
 ##Compiling
 
-The `libnetfilter-queue-dev` package or equivalent is needed.
+The `libnetfilter-queue-dev` and `libcap-dev` packages or equivalent are needed.
 
 Run `make`. The program `proxy_rewriter` will be created.

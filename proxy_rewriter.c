@@ -25,6 +25,14 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
+/* For capabilities / permissions */
+#include <sys/types.h>
+#include <sys/capability.h>
+#include <sys/prctl.h>
+#include <linux/capability.h>
+#include <pwd.h>
+#include <unistd.h>
+
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/types.h>
@@ -160,6 +168,61 @@ static int netfilter_callback(struct nfq_q_handle *nfhandle, struct nfgenmsg *nf
 
 /* ******************************************************* */
 
+static int drop_privs() {
+  const cap_value_t cap_values[] = {
+    CAP_NET_RAW,      /* Use RAW and PACKET sockets */
+    CAP_NET_ADMIN     /* Perform various network-related operations */
+  };
+  const int num_cap = sizeof(cap_values) / sizeof(cap_value_t);
+  const char *username = "anonymous";
+  struct passwd *pw = getpwnam(username);
+
+  if(!pw) {
+    fprintf(stderr, "Cannot find user %s\n", username);
+    return -1;
+  }
+
+  /* Prepare capabilities */
+  cap_t caps = cap_get_proc();
+  cap_set_flag(caps, CAP_PERMITTED, num_cap, cap_values, CAP_SET);
+  cap_set_flag(caps, CAP_EFFECTIVE, num_cap, cap_values, CAP_SET);
+
+  if(cap_set_proc(caps) == 0) {
+    if(prctl(PR_SET_KEEPCAPS, 1, 0, 0, 0) != 0) {
+      fprintf(stderr, "Cannot retain capabilities\n");
+      cap_free(caps);
+      return -2;
+    }
+  } else {
+    fprintf(stderr, "Could not set capabilities\n");
+    cap_free(caps);
+    return -3;
+  }
+
+  cap_free(caps);
+
+  if((setgid(pw->pw_gid) != 0) || (setuid(pw->pw_uid) != 0)) {
+    fprintf(stderr, "Cannot drop privileges\n");
+    return -4;
+  }
+
+  /* Acquire capabilities */
+  caps = cap_get_proc();
+
+  cap_set_flag(caps, CAP_EFFECTIVE, num_cap, cap_values, CAP_SET);
+  if(cap_set_proc(caps) != 0) {
+    fprintf(stderr, "Could not acquire capabilities\n");
+    cap_free(caps);
+    return -5;
+  }
+
+  cap_free(caps);
+
+  return 0;
+}
+
+/* ******************************************************* */
+
 int main() {
   struct nfq_handle *nfHandle;
   struct nfq_q_handle *queueHandle;
@@ -204,6 +267,17 @@ int main() {
     fprintf(stderr, "malloc failed\n");
     return -1;
   }
+
+  int priv_rv;
+
+  if((priv_rv = drop_privs()) != 0) {
+    if(priv_rv == -5) {
+      fprintf(stderr, "FATAL: privileges error\n");
+      return -1;
+    }
+
+    fprintf(stderr, "WARNING: privileges not dropped!\n");
+  }  
 
   /*****/
 
