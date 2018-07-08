@@ -172,7 +172,7 @@ static int drop_privs() {
     CAP_NET_ADMIN     /* Perform various network-related operations */
   };
   const int num_cap = sizeof(cap_values) / sizeof(cap_value_t);
-  const char *username = "anonymous";
+  const char *username = "nobody";
   struct passwd *pw = getpwnam(username);
 
   if(!pw) {
