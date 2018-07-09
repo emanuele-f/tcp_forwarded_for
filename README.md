@@ -37,7 +37,12 @@ where:
 
 The last line will enqueue packets on NFQUEUE 1 for the *proxy_rewriter* program.
 The packet to be modified is the first one of the connection, so the `connbytes` filter
-is used. NOTE: `connbytes` requires `net.netfilter.nf_conntrack_acct = 1`.
+is used.
+
+Notes:
+
+- IP forwarding is obviously needed to proxy: `net.ipv4.ip_forward = 1`.
+- `connbytes` requires `net.netfilter.nf_conntrack_acct = 1`.
 
 ## Compiling
 
